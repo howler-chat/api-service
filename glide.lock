@@ -1,0 +1,16 @@
+hash: 56be62c3f50cb047fbadbfd34caed3773df4e364a1eea48d3fdf3c8b513e59d1
+updated: 2016-07-05T18:34:45.2825895-05:00
+imports:
+- name: github.com/asaskevich/govalidator
+  version: 7664702784775e51966f0885f5cd27435916517b
+- name: github.com/Sirupsen/logrus
+  version: 4b6ea7319e214d98c938f12692336f7ca9348d6b
+- name: golang.org/x/net
+  version: b400c2eff1badec7022a8c8f5bea058b6315eed7
+  subpackages:
+  - context
+- name: golang.org/x/sys
+  version: a408501be4d17ee978c04a618e7a1b22af058c0e
+  subpackages:
+  - unix
+testImports: []

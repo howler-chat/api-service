@@ -1,0 +1,9 @@
+package: github.com/thrawn01/howler-api
+import:
+- package: github.com/Sirupsen/logrus
+  version: ~0.10.0
+- package: github.com/asaskevich/govalidator
+  version: ~4.0.0
+- package: golang.org/x/net
+  subpackages:
+  - context
