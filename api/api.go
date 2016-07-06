@@ -7,7 +7,8 @@ package api
 import (
 	"encoding/json"
 
-	"github.com/howler-chat/api-service/errors"
+	"github.com/gogo/protobuf/io"
+	. "github.com/howler-chat/api-service/errors"
 	"github.com/howler-chat/api-service/model"
 	"github.com/howler-chat/api-service/store"
 	"golang.org/x/net/context"
@@ -24,23 +25,23 @@ the system, such as web sockets, http verbs, WebRTC data channels, sockets
 //	{ text: "This is a message", "channelId": "A124B343" }
 // Response
 //	{ id: "AS223SDFS23" }
-func PostMessage(ctx context.Context, payload []byte) ([]byte, error) {
+func PostMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 	var msg model.Message
 
-	// TODO: Record call metrics
-
-	if err := json.Unmarshal(payload, &msg); err != nil {
-		return nil, errors.ReceivedInvalidJson(ctx, err)
+	decoder := json.NewDecoder(payload)
+	if err := decoder.Decode(&msg); err != nil {
+		err := ReceivedInvalidJson(ctx, err)
+		return err.ToJson(), err
 	}
 
-	// Post the message to the table
 	if err := store.SaveMessage(ctx, &msg); err != nil {
-		return nil, err
+		return err.ToJson(), err
 	}
 
 	resp, err := json.Marshal(map[string]interface{}{"id": msg.Id})
 	if err != nil {
-		return nil, errors.InternalJsonError(ctx, err)
+		err := InternalJsonError(ctx, err)
+		return err.ToJson(), err
 	}
 	return resp, nil
 }
@@ -50,23 +51,23 @@ func PostMessage(ctx context.Context, payload []byte) ([]byte, error) {
 //	{ "id": "AS223SDFS23", "channelId": "A124B343" }
 // Response
 //	{ type: "message", text: "This is a message", "channelId": "A124B343" }
-func GetMessage(ctx context.Context, payload []byte) ([]byte, error) {
+func GetMessage(ctx context.Context, payload []byte) ([]byte, HowlerError) {
 	var request model.GetMessageRequest
 
-	// TODO: Record call metrics
-
 	if err := json.Unmarshal(payload, &request); err != nil {
-		return nil, errors.ReceivedInvalidJson(ctx, err)
+		err := ReceivedInvalidJson(ctx, err)
+		return err.ToJson(), err
 	}
 
 	msg, err := store.GetMessage(ctx, &request)
 	if err != nil {
-		return nil, err
+		return err.ToJson(), err
 	}
 
 	resp, err := json.Marshal(msg)
 	if err != nil {
-		return nil, errors.InternalJsonError(ctx, err)
+		err := InternalJsonError(ctx, err)
+		return err.ToJson(), err
 	}
 	return resp, nil
 }
@@ -79,23 +80,23 @@ func GetMessage(ctx context.Context, payload []byte) ([]byte, error) {
 // 		{ type: "message", text: "This is a message", "channelId": "A124B343" }
 //		...
 //	]
-func MessageList(ctx context.Context, payload []byte) {
+func MessageList(ctx context.Context, payload []byte) ([]byte, HowlerError) {
 	var request model.ListMessageRequest
 
-	// TODO: Record call metrics
-
 	if err := json.Unmarshal(payload, &request); err != nil {
-		return nil, errors.ReceivedInvalidJson(ctx, err)
+		err := ReceivedInvalidJson(ctx, err)
+		return err.ToJson(), err
 	}
 
 	msg, err := store.ListMessage(ctx, &request)
 	if err != nil {
-		return nil, err
+		return err.ToJson(), err
 	}
 
 	resp, err := json.Marshal(msg)
 	if err != nil {
-		return nil, errors.InternalJsonError(ctx, err)
+		err := InternalJsonError(ctx, err)
+		return err.ToJson(), err
 	}
 	return resp, nil
 }

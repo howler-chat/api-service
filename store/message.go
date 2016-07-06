@@ -6,13 +6,14 @@ package store
 
 import (
 	"github.com/howler-chat/api-service/auth"
+	"github.com/howler-chat/api-service/errors"
 	"github.com/howler-chat/api-service/model"
 	"golang.org/x/net/context"
 )
 
 // Save and send the message to the requested channel, will return non nil error if the message is invalid or the client
 // does not have access to the requested channel
-func SaveMessage(ctx context.Context, msg *model.Message) error {
+func SaveMessage(ctx context.Context, msg *model.Message) errors.HowlerError {
 	// Validate the Model
 	if err := msg.Validate(ctx); err != nil {
 		return err
@@ -30,7 +31,7 @@ func SaveMessage(ctx context.Context, msg *model.Message) error {
 
 // Get a message, will return non nil error if the message doesn't exist, or the client does not have accees to the
 // requested channel
-func GetMessage(ctx context.Context, req *model.GetMessageRequest) (*model.Message, error) {
+func GetMessage(ctx context.Context, req *model.GetMessageRequest) (*model.Message, errors.HowlerError) {
 	// Validate the Model
 	if err := req.Validate(ctx); err != nil {
 		return err
@@ -44,7 +45,7 @@ func GetMessage(ctx context.Context, req *model.GetMessageRequest) (*model.Messa
 	return model.Message{}, nil
 }
 
-func ListMessage(ctx context.Context, req *model.ListMessageRequest) ([]model.Message, error) {
+func ListMessage(ctx context.Context, req *model.ListMessageRequest) ([]model.Message, errors.HowlerError) {
 	// Validate the Model
 	if err := req.Validate(ctx); err != nil {
 		return err

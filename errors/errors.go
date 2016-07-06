@@ -7,38 +7,43 @@ package errors
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/howler-chat/api-service/validate/field"
 	"golang.org/x/net/context"
 )
 
-const (
-	INVALID_JSON = 1 << iota
-	INTERNAL_ERROR
-	ACCESS_DENIED
-	VALIDATION_ERROR
-)
+type HowlerError interface {
+	error
+	Code() int
+	ToJson() []byte
+}
 
-type Error struct {
+type howlerError struct {
 	Type      string `json:"type"`
 	Code      int    `json:"code"`
 	Message   string `json:"message,omitempty"`
 	RequestId string `json:"omit"`
 }
 
-func (self *Error) Error() string {
+func (self *howlerError) Error() string {
+	return string(self.ToJson())
+}
+
+func (self *howlerError) ToJson() []byte {
 	resp, err := json.Marshal(self)
 	if err != nil {
 		log.WithField("requestId", self.RequestId).
 			Error("json.Marshal() failed on '%+v' with '%s'", self, err.Error())
-		return fmt.Sprintf(`{ "type": "error", "code": %d, "message": "Internal Error"}`, INTERNAL_ERROR)
+		return []byte(fmt.Sprintf(`{ "type": "error", "code": %d, "message": "Internal Error"}`,
+			http.StatusInternalServerError))
 	}
-	return string(resp)
+	return resp
 }
 
-func Fatal(ctx context.Context, code int, msg string, stuff ...interface{}) Error {
-	return Error{
+func Fatal(ctx context.Context, code int, msg string, stuff ...interface{}) HowlerError {
+	return howlerError{
 		Type:    "error",
 		Code:    code,
 		Message: fmt.Sprintf(msg, stuff...),
@@ -46,14 +51,14 @@ func Fatal(ctx context.Context, code int, msg string, stuff ...interface{}) Erro
 	}
 }
 
-func ReceivedInvalidJson(ctx context.Context, err error) error {
-	return Fatal(ctx, INVALID_JSON, "Received Invalid JSON - %s", err.Error())
+func ReceivedInvalidJson(ctx context.Context, err error) HowlerError {
+	return Fatal(ctx, http.StatusBadRequest, "Received Invalid JSON - %s", err.Error())
 }
 
-func InternalJsonError(ctx context.Context, err error) error {
-	return Fatal(ctx, INTERNAL_ERROR, "Marshal JSON Error - %s", err.Error())
+func InternalJsonError(ctx context.Context, err error) HowlerError {
+	return Fatal(ctx, http.StatusInternalServerError, "Marshal JSON Error - %s", err.Error())
 }
 
-func ValidationFail(ctx context.Context, msg string, path *field.Path) error {
-	return Fatal(ctx, VALIDATION_ERROR, "Validation Failed on '%s' - '%s'", path.String(), msg)
+func ValidationFail(ctx context.Context, msg string, path *field.Path) HowlerError {
+	return Fatal(ctx, http.StatusNotAcceptable, "Validation Failed on '%s' - '%s'", path.String(), msg)
 }

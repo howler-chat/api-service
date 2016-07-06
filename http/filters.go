@@ -29,3 +29,10 @@ func MimeJson(next chi.Handler) chi.Handler {
 		next.ServeHTTPC(ctx, resp, req)
 	})
 }
+
+func RecordMetrics(next chi.Handler) chi.Handler {
+	return chi.HandlerFunc(func(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+		// TODO: Record some metrics about the request
+		next.ServeHTTPC(ctx, resp, req)
+	})
+}

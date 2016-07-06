@@ -26,10 +26,13 @@ func NewApiService() http.Handler {
 	router.Use(middleware.CloseNotify)
 	// Stop processing after 2.5 seconds.
 	router.Use(middleware.Timeout(2500 * time.Millisecond))
-	// Set JSON headers for every request
-	router.Use(MimeJson)
 
 	router.Route("/api", func(router chi.Router) {
+		// Set JSON headers for every request
+		router.Use(MimeJson)
+		// Record Metrics for every request
+		router.Use(RecordMetrics)
+
 		// Use '.' dot to indicate to our users this is not a rest endpoint
 		router.Get("/message.post", messagePost)
 		router.Get("/message.get", messageGet)
@@ -39,9 +42,11 @@ func NewApiService() http.Handler {
 }
 
 func messagePost(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
 	payload, err := api.PostMessage(ctx, req.Body)
 	if err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
+		resp.WriteHeader(err.Code())
 	}
 	resp.Write(payload)
 }
