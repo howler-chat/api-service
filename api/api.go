@@ -27,6 +27,8 @@ the system, such as web sockets, http verbs, WebRTC data channels, sockets
 func PostMessage(ctx context.Context, payload []byte) ([]byte, error) {
 	var msg model.Message
 
+	// TODO: Record call metrics
+
 	if err := json.Unmarshal(payload, &msg); err != nil {
 		return nil, errors.ReceivedInvalidJson(ctx, err)
 	}
@@ -50,6 +52,8 @@ func PostMessage(ctx context.Context, payload []byte) ([]byte, error) {
 //	{ type: "message", text: "This is a message", "channelId": "A124B343" }
 func GetMessage(ctx context.Context, payload []byte) ([]byte, error) {
 	var request model.GetMessageRequest
+
+	// TODO: Record call metrics
 
 	if err := json.Unmarshal(payload, &request); err != nil {
 		return nil, errors.ReceivedInvalidJson(ctx, err)
@@ -77,6 +81,8 @@ func GetMessage(ctx context.Context, payload []byte) ([]byte, error) {
 //	]
 func MessageList(ctx context.Context, payload []byte) {
 	var request model.ListMessageRequest
+
+	// TODO: Record call metrics
 
 	if err := json.Unmarshal(payload, &request); err != nil {
 		return nil, errors.ReceivedInvalidJson(ctx, err)
