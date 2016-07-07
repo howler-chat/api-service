@@ -28,6 +28,7 @@ the system, such as web sockets, http verbs, WebRTC data channels, sockets
 func PostMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 	var msg model.Message
 
+	// TODO: Test how this reacts to multiple json bodies in a single reader
 	decoder := json.NewDecoder(payload)
 	if err := decoder.Decode(&msg); err != nil {
 		err := ReceivedInvalidJson(ctx, err)
@@ -51,10 +52,11 @@ func PostMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 //	{ "id": "AS223SDFS23", "channelId": "A124B343" }
 // Response
 //	{ type: "message", text: "This is a message", "channelId": "A124B343" }
-func GetMessage(ctx context.Context, payload []byte) ([]byte, HowlerError) {
+func GetMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 	var request model.GetMessageRequest
 
-	if err := json.Unmarshal(payload, &request); err != nil {
+	decoder := json.NewDecoder(payload)
+	if err := decoder.Decode(&request); err != nil {
 		err := ReceivedInvalidJson(ctx, err)
 		return err.ToJson(), err
 	}
@@ -83,7 +85,8 @@ func GetMessage(ctx context.Context, payload []byte) ([]byte, HowlerError) {
 func MessageList(ctx context.Context, payload []byte) ([]byte, HowlerError) {
 	var request model.ListMessageRequest
 
-	if err := json.Unmarshal(payload, &request); err != nil {
+	decoder := json.NewDecoder(payload)
+	if err := decoder.Decode(&request); err != nil {
 		err := ReceivedInvalidJson(ctx, err)
 		return err.ToJson(), err
 	}

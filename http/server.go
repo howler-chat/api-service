@@ -13,6 +13,7 @@ import (
 	"github.com/howler-chat/api-service/api"
 	"github.com/pressly/chi"
 	"github.com/pressly/chi/middleware"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func NewApiService() http.Handler {
@@ -38,6 +39,10 @@ func NewApiService() http.Handler {
 		router.Get("/message.get", messageGet)
 		router.Get("/message.list", messageList)
 	})
+
+	// Expose the metrics we have collected
+	router.Get("/metrics", prometheus.Handler())
+
 	return router
 }
 
