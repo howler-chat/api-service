@@ -14,7 +14,13 @@ import (
 	"github.com/pressly/chi"
 	"github.com/pressly/chi/middleware"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/thrawn01/args"
 )
+
+func Serve(opt *args.Options) error {
+	handler := NewApiService()
+	return http.ListenAndServe(opt.String("bind"), handler)
+}
 
 func NewApiService() http.Handler {
 	router := chi.NewRouter()
@@ -57,9 +63,21 @@ func messagePost(ctx context.Context, resp http.ResponseWriter, req *http.Reques
 }
 
 func messageGet(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
 
+	payload, err := api.GetMessage(ctx, req.Body)
+	if err != nil {
+		resp.WriteHeader(err.Code())
+	}
+	resp.Write(payload)
 }
 
 func messageList(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
 
+	payload, err := api.MessageList(ctx, req.Body)
+	if err != nil {
+		resp.WriteHeader(err.Code())
+	}
+	resp.Write(payload)
 }

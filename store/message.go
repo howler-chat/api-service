@@ -5,56 +5,55 @@
 package store
 
 import (
-	"github.com/howler-chat/api-service/auth"
+	"fmt"
+
+	"github.com/dancannon/gorethink"
 	"github.com/howler-chat/api-service/errors"
 	"github.com/howler-chat/api-service/model"
 	"golang.org/x/net/context"
 )
 
-// Save and send the message to the requested channel, will return non nil error if the message is invalid or the client
-// does not have access to the requested channel
-func SaveMessage(ctx context.Context, msg *model.Message) errors.HowlerError {
-	// Validate the Model
-	if err := msg.Validate(ctx); err != nil {
-		return err
+// Insert the message on the requested channel
+func InsertMessage(ctx context.Context, msg *model.Message) errors.HowlerError {
+	changed, err := gorethink.Table("Message").Insert(msg).RunWrite(Session, runOpts)
+	if err != nil {
+		return RethinkError(ctx, "InsertMessage()", err.Error())
+	} else if changed.Errors != 0 {
+		return RethinkError(ctx, "InsertMessage()", changed.FirstError)
 	}
-
-	// Does client have access to the channel?
-	if err := auth.CanAccessChannel(ctx, msg.ChannelId); err != nil {
-		return nil, err
+	if len(changed.GeneratedKeys) == 0 {
+		return RethinkError(ctx, "InsertMessage()",
+			fmt.Sprintf("GeneratedKeys Empty after insert %+v", changed))
 	}
-
-	// TODO: Save the message
-	// TODO: get the new message id and set msg.Id
+	msg.Id = changed.GeneratedKeys[0]
 	return nil
 }
 
 // Get a message, will return non nil error if the message doesn't exist, or the client does not have accees to the
 // requested channel
 func GetMessage(ctx context.Context, req *model.GetMessageRequest) (*model.Message, errors.HowlerError) {
-	// Validate the Model
-	if err := req.Validate(ctx); err != nil {
-		return err
-	}
+	var message model.Message
+	cursor, err := gorethink.Table("Message").
+		Filter(gorethink.Row.Field("ChannelId").Eq(req.ChannelId).
+			And(gorethink.Row.Field("MessageId").Eq(req.MessageId))).Run(Session, runOpts)
 
-	// Does client have access to the channel?
-	if err := auth.CanAccessChannel(ctx, req.ChannelId); err != nil {
-		return nil, err
+	if err != nil {
+		return RethinkError(ctx, "GetMessage()", err.Error())
+	} else if err := cursor.One(&message); err != nil {
+		return RethinkError(ctx, "GetMessage().One()", err.Error())
 	}
-	// TODO: Get the message
-	return model.Message{}, nil
+	return &message, nil
 }
 
 func ListMessage(ctx context.Context, req *model.ListMessageRequest) ([]model.Message, errors.HowlerError) {
-	// Validate the Model
-	if err := req.Validate(ctx); err != nil {
-		return err
-	}
+	var messages []model.Message
+	cursor, err := gorethink.Table("Message").
+		Filter(gorethink.Row.Field("ChannelId").Eq(req.ChannelId)).Run(Session, runOpts)
 
-	// Does client have access to the channel?
-	if err := auth.CanAccessChannel(ctx, req.ChannelId); err != nil {
-		return nil, err
+	if err != nil {
+		return RethinkError(ctx, "ListMessage()", err.Error())
+	} else if err := cursor.All(&messages); err != nil {
+		return RethinkError(ctx, "ListMessage().All()", err.Error())
 	}
-	// TODO: Get all the messages for the requested channel
-	return
+	return &messages, nil
 }

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 
 	"github.com/gogo/protobuf/io"
+	"github.com/howler-chat/api-service/auth"
 	. "github.com/howler-chat/api-service/errors"
 	"github.com/howler-chat/api-service/model"
 	"github.com/howler-chat/api-service/store"
@@ -35,7 +36,17 @@ func PostMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 		return err.ToJson(), err
 	}
 
-	if err := store.SaveMessage(ctx, &msg); err != nil {
+	// Validate the Model
+	if err := msg.Validate(ctx); err != nil {
+		return err
+	}
+
+	// Does client have access to the channel?
+	if err := auth.CanAccessChannel(ctx, msg.ChannelId); err != nil {
+		return nil, err
+	}
+
+	if err := store.InsertMessage(ctx, &msg); err != nil {
 		return err.ToJson(), err
 	}
 
@@ -59,6 +70,16 @@ func GetMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 	if err := decoder.Decode(&request); err != nil {
 		err := ReceivedInvalidJson(ctx, err)
 		return err.ToJson(), err
+	}
+
+	// Validate the Model
+	if err := request.Validate(ctx); err != nil {
+		return err
+	}
+
+	// Does client have access to the channel?
+	if err := auth.CanAccessChannel(ctx, request.ChannelId); err != nil {
+		return nil, err
 	}
 
 	msg, err := store.GetMessage(ctx, &request)
@@ -89,6 +110,16 @@ func MessageList(ctx context.Context, payload []byte) ([]byte, HowlerError) {
 	if err := decoder.Decode(&request); err != nil {
 		err := ReceivedInvalidJson(ctx, err)
 		return err.ToJson(), err
+	}
+
+	// Validate the Model
+	if err := request.Validate(ctx); err != nil {
+		return err
+	}
+
+	// Does client have access to the channel?
+	if err := auth.CanAccessChannel(ctx, request.ChannelId); err != nil {
+		return nil, err
 	}
 
 	msg, err := store.ListMessage(ctx, &request)

@@ -7,9 +7,12 @@ package validate
 import (
 	stdError "errors"
 	"fmt"
+	"net/http"
 	"regexp"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/howler-chat/api-service/errors"
+	"github.com/howler-chat/api-service/validate/field"
 	"golang.org/x/net/context"
 )
 
@@ -36,4 +39,8 @@ func IsMessageText(text string) error {
 		return stdError.New(fmt.Sprintf("A message with only white space is not allowed"))
 	}
 	return nil
+}
+
+func Fail(ctx context.Context, msg string, path *field.Path) errors.HowlerError {
+	return errors.Error(ctx, http.StatusNotAcceptable, "Validation Failed on '%s' - '%s'", path.String(), msg)
 }

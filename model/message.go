@@ -5,7 +5,6 @@
 package model
 
 import (
-	"github.com/howler-chat/api-service/errors"
 	"github.com/howler-chat/api-service/validate"
 	"github.com/howler-chat/api-service/validate/field"
 	"golang.org/x/net/context"
@@ -21,10 +20,10 @@ type Message struct {
 // After marshaling from JSON, call this method to validate the object is intact
 func (self *Message) Validate(ctx context.Context) error {
 	if err := validate.IsValidId(self.ChannelId); err != nil {
-		errors.ValidationFail(ctx, err.Error(), field.NewPath("channelId"))
+		validate.Fail(ctx, err.Error(), field.NewPath("channelId"))
 	}
 	if err := validate.IsMessageText(self.Text); err != nil {
-		errors.ValidationFail(ctx, err.Error(), field.NewPath("channelId"))
+		validate.Fail(ctx, err.Error(), field.NewPath("channelId"))
 	}
 	return nil
 }
@@ -53,11 +52,11 @@ type GetMessageRequest struct {
 // After marshaling from JSON, call this method to validate the object is intact
 func (self *GetMessageRequest) Validate(ctx context.Context) error {
 	if err := validate.IsValidId(self.MessageId); err != nil {
-		errors.ValidationFail(ctx, err.Error(), field.NewPath("messageId"))
+		validate.Fail(ctx, err.Error(), field.NewPath("messageId"))
 	}
 
 	if err := validate.IsValidId(self.ChannelId); err != nil {
-		errors.ValidationFail(ctx, err.Error(), field.NewPath("channelId"))
+		validate.Fail(ctx, err.Error(), field.NewPath("channelId"))
 	}
 	return nil
 }
@@ -71,7 +70,7 @@ type ListMessageRequest struct {
 // After marshaling from JSON, call this method to validate the object is intact
 func (self *ListMessageRequest) Validate(ctx context.Context) error {
 	if err := validate.IsValidId(self.ChannelId); err != nil {
-		errors.ValidationFail(ctx, err.Error(), field.NewPath("channelId"))
+		validate.Fail(ctx, err.Error(), field.NewPath("channelId"))
 	}
 	return nil
 }

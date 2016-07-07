@@ -10,7 +10,7 @@ import (
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/howler-chat/api-service/validate/field"
+	"github.com/howler-chat/api-service/metrics"
 	"golang.org/x/net/context"
 )
 
@@ -42,7 +42,7 @@ func (self *howlerError) ToJson() []byte {
 	return resp
 }
 
-func Fatal(ctx context.Context, code int, msg string, stuff ...interface{}) HowlerError {
+func Error(ctx context.Context, code int, msg string, stuff ...interface{}) HowlerError {
 	return howlerError{
 		Type:    "error",
 		Code:    code,
@@ -51,14 +51,25 @@ func Fatal(ctx context.Context, code int, msg string, stuff ...interface{}) Howl
 	}
 }
 
+func Internal(ctx context.Context, code int, tags []string, msg string, stuff ...interface{}) HowlerError {
+	renderedMsg := fmt.Sprintf(msg, stuff...)
+	// Tell metrics about the internal error
+	metrics.InternalErrors.WithLabelValues(tags...).Inc()
+	// Log the detail of the error
+	log.WithFields(tags).Error(renderedMsg)
+
+	return howlerError{
+		Type:    "error",
+		Code:    code,
+		Message: renderedMsg,
+		// TODO: RequestId: ctx.GetRequestId()
+	}
+}
+
 func ReceivedInvalidJson(ctx context.Context, err error) HowlerError {
-	return Fatal(ctx, http.StatusBadRequest, "Received Invalid JSON - %s", err.Error())
+	return Error(ctx, http.StatusBadRequest, "Received Invalid JSON - %s", err.Error())
 }
 
 func InternalJsonError(ctx context.Context, err error) HowlerError {
-	return Fatal(ctx, http.StatusInternalServerError, "Marshal JSON Error - %s", err.Error())
-}
-
-func ValidationFail(ctx context.Context, msg string, path *field.Path) HowlerError {
-	return Fatal(ctx, http.StatusNotAcceptable, "Validation Failed on '%s' - '%s'", path.String(), msg)
+	return Internal(ctx, http.StatusInternalServerError, []string{"json"}, "Marshal JSON Error - %s", err.Error())
 }
