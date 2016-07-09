@@ -52,7 +52,7 @@ func PostMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 
 	resp, err := json.Marshal(map[string]interface{}{"id": msg.Id})
 	if err != nil {
-		err := InternalJsonError(ctx, err)
+		err := InternalJsonError(ctx, "api.PostMessage()", err)
 		return err.ToJson(), err
 	}
 	return resp, nil
@@ -89,7 +89,7 @@ func GetMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 
 	resp, err := json.Marshal(msg)
 	if err != nil {
-		err := InternalJsonError(ctx, err)
+		err := InternalJsonError(ctx, "api.GetMessage()", err)
 		return err.ToJson(), err
 	}
 	return resp, nil
@@ -129,7 +129,7 @@ func MessageList(ctx context.Context, payload []byte) ([]byte, HowlerError) {
 
 	resp, err := json.Marshal(msg)
 	if err != nil {
-		err := InternalJsonError(ctx, err)
+		err := InternalJsonError(ctx, "api.MessageList()", err)
 		return err.ToJson(), err
 	}
 	return resp, nil

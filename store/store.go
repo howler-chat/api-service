@@ -4,10 +4,10 @@ import (
 	"time"
 
 	"net/http"
+	"sync"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/dancannon/gorethink"
-	"github.com/golang/go/src/pkg/sync"
 	"github.com/howler-chat/api-service/errors"
 	"github.com/thrawn01/args"
 	"golang.org/x/net/context"

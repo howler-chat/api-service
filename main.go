@@ -6,7 +6,6 @@ import (
 	"os"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/howler-chat/api-service/http"
 	"github.com/thrawn01/args"
 )
 
@@ -54,7 +53,7 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	err := http.Serve(opt)
+	err := apiService.Serve(opt)
 	if err != nil {
 		log.Fatal(err)
 	}

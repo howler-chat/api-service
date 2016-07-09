@@ -8,7 +8,7 @@ wrapWriter() with associated code and struct's copied from CHI middleware
  at https://github.com/pressly/chi/blob/master/middleware/logger.go with modifications
 */
 
-package http
+package service
 
 import (
 	"bufio"
@@ -99,7 +99,7 @@ func Logger(next chi.Handler) chi.Handler {
 		log.Info(buf)
 		// Put the buffer back into the pool
 		bufferPool.Put(buf)
-	}
+	})
 }
 
 // writerProxy is a proxy around an http.ResponseWriter that allows you to hook

@@ -74,3 +74,8 @@ func (self *ListMessageRequest) Validate(ctx context.Context) error {
 	}
 	return nil
 }
+
+// The Response to an InsertMessage() message
+type MessageResponse struct {
+	Id string `json:"id"`
+}

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package http
+package service
 
 import (
 	"net/http"
@@ -18,11 +18,11 @@ import (
 )
 
 func Serve(opt *args.Options) error {
-	handler := NewApiService()
+	handler := NewService()
 	return http.ListenAndServe(opt.String("bind"), handler)
 }
 
-func NewApiService() http.Handler {
+func NewService() http.Handler {
 	router := chi.NewRouter()
 
 	// Log Requests
@@ -41,9 +41,9 @@ func NewApiService() http.Handler {
 		router.Use(RecordMetrics)
 
 		// Use '.' dot to indicate to our users this is not a rest endpoint
-		router.Get("/message.post", messagePost)
-		router.Get("/message.get", messageGet)
-		router.Get("/message.list", messageList)
+		router.Post("/message.post", messagePost)
+		router.Post("/message.get", messageGet)
+		router.Post("/message.list", messageList)
 	})
 
 	// Expose the metrics we have collected
@@ -57,7 +57,7 @@ func messagePost(ctx context.Context, resp http.ResponseWriter, req *http.Reques
 
 	payload, err := api.PostMessage(ctx, req.Body)
 	if err != nil {
-		resp.WriteHeader(err.Code())
+		resp.WriteHeader(err.GetCode())
 	}
 	resp.Write(payload)
 }
@@ -67,7 +67,7 @@ func messageGet(ctx context.Context, resp http.ResponseWriter, req *http.Request
 
 	payload, err := api.GetMessage(ctx, req.Body)
 	if err != nil {
-		resp.WriteHeader(err.Code())
+		resp.WriteHeader(err.GetCode())
 	}
 	resp.Write(payload)
 }
@@ -77,7 +77,7 @@ func messageList(ctx context.Context, resp http.ResponseWriter, req *http.Reques
 
 	payload, err := api.MessageList(ctx, req.Body)
 	if err != nil {
-		resp.WriteHeader(err.Code())
+		resp.WriteHeader(err.GetCode())
 	}
 	resp.Write(payload)
 }

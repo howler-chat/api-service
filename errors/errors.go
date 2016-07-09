@@ -5,7 +5,6 @@
 package errors
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -16,34 +15,21 @@ import (
 
 type HowlerError interface {
 	error
-	Code() int
+	GetCode() int
+	GetMessage() string
 	ToJson() []byte
 }
 
-type howlerError struct {
-	Type      string `json:"type"`
-	Code      int    `json:"code"`
-	Message   string `json:"message,omitempty"`
-	RequestId string `json:"omit"`
-}
-
-func (self *howlerError) Error() string {
-	return string(self.ToJson())
-}
-
-func (self *howlerError) ToJson() []byte {
-	resp, err := json.Marshal(self)
-	if err != nil {
-		log.WithField("requestId", self.RequestId).
-			Error("json.Marshal() failed on '%+v' with '%s'", self, err.Error())
-		return []byte(fmt.Sprintf(`{ "type": "error", "code": %d, "message": "Internal Error"}`,
-			http.StatusInternalServerError))
+func NewHowlerError(msg string) *ErrorResponse {
+	return &ErrorResponse{
+		Type:    "error",
+		Code:    0,
+		Message: msg,
 	}
-	return resp
 }
 
 func Error(ctx context.Context, code int, msg string, stuff ...interface{}) HowlerError {
-	return howlerError{
+	return &ErrorResponse{
 		Type:    "error",
 		Code:    code,
 		Message: fmt.Sprintf(msg, stuff...),
@@ -51,14 +37,14 @@ func Error(ctx context.Context, code int, msg string, stuff ...interface{}) Howl
 	}
 }
 
-func Internal(ctx context.Context, code int, tags []string, msg string, stuff ...interface{}) HowlerError {
+func Internal(ctx context.Context, code int, tags map[string]string, msg string, stuff ...interface{}) HowlerError {
 	renderedMsg := fmt.Sprintf(msg, stuff...)
 	// Tell metrics about the internal error
-	metrics.InternalErrors.WithLabelValues(tags...).Inc()
+	metrics.InternalErrors.With(tags).Inc()
 	// Log the detail of the error
 	log.WithFields(tags).Error(renderedMsg)
 
-	return howlerError{
+	return &ErrorResponse{
 		Type:    "error",
 		Code:    code,
 		Message: renderedMsg,
@@ -70,6 +56,10 @@ func ReceivedInvalidJson(ctx context.Context, err error) HowlerError {
 	return Error(ctx, http.StatusBadRequest, "Received Invalid JSON - %s", err.Error())
 }
 
-func InternalJsonError(ctx context.Context, err error) HowlerError {
-	return Internal(ctx, http.StatusInternalServerError, []string{"json"}, "Marshal JSON Error - %s", err.Error())
+func InternalJsonError(ctx context.Context, method string, err error) HowlerError {
+	tags := map[string]string{
+		"type:":  "json",
+		"method": method,
+	}
+	return Internal(ctx, http.StatusInternalServerError, tags, "Marshal JSON Error - %s", err.Error())
 }
