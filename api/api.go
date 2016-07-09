@@ -6,8 +6,8 @@ package api
 
 import (
 	"encoding/json"
+	"io"
 
-	"github.com/gogo/protobuf/io"
 	"github.com/howler-chat/api-service/auth"
 	. "github.com/howler-chat/api-service/errors"
 	"github.com/howler-chat/api-service/model"
@@ -87,9 +87,9 @@ func GetMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 		return err.ToJson(), err
 	}
 
-	resp, err := json.Marshal(msg)
-	if err != nil {
-		err := InternalJsonError(ctx, "api.GetMessage()", err)
+	resp, jsonErr := json.Marshal(msg)
+	if jsonErr != nil {
+		err := InternalJsonError(ctx, "api.GetMessage()", jsonErr)
 		return err.ToJson(), err
 	}
 	return resp, nil
@@ -103,7 +103,7 @@ func GetMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 // 		{ type: "message", text: "This is a message", "channelId": "A124B343" }
 //		...
 //	]
-func MessageList(ctx context.Context, payload []byte) ([]byte, HowlerError) {
+func MessageList(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 	var request model.ListMessageRequest
 
 	decoder := json.NewDecoder(payload)
@@ -127,9 +127,9 @@ func MessageList(ctx context.Context, payload []byte) ([]byte, HowlerError) {
 		return err.ToJson(), err
 	}
 
-	resp, err := json.Marshal(msg)
-	if err != nil {
-		err := InternalJsonError(ctx, "api.MessageList()", err)
+	resp, jsonErr := json.Marshal(msg)
+	if jsonErr != nil {
+		err := InternalJsonError(ctx, "api.MessageList()", jsonErr)
 		return err.ToJson(), err
 	}
 	return resp, nil

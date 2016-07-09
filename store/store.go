@@ -89,10 +89,10 @@ func Init(newParser *args.ArgParser) {
 	}
 }
 
-func RethinkError(ctx context.Context, functionName string, msg string) errors.HowlerError {
+func RethinkError(ctx context.Context, method string, msg string) errors.HowlerError {
 	// TODO: If 'err' reports Session is a not connected to rethink, signal to start reconnecting
 	// TODO: Call Reconnect()
 	// TODO: If we need to reconnect, add the 'reconnect' tag
-	tags := []string{"rethink"}
-	return errors.Internal(ctx, http.StatusServiceUnavailable, tags, "%s Rethinkdb Error - %s", functionName, msg)
+	tags := map[string]string{"type": "rethink", "method": method}
+	return errors.Internal(ctx, http.StatusServiceUnavailable, tags, "Rethinkdb Error - %s", msg)
 }

@@ -63,9 +63,9 @@ func Logger(next chi.Handler) chi.Handler {
 		buf.WriteString(" ")
 		buf.WriteString(req.Method)
 		// Uri
-		buf.WriteString(" \"")
+		buf.WriteString(" ")
 		buf.WriteString(req.URL.RequestURI())
-		buf.WriteString("\" ")
+		buf.WriteString(" ")
 		// Proto
 		buf.WriteString(req.Proto)
 		buf.WriteString(" ")

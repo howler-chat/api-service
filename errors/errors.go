@@ -10,6 +10,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/howler-chat/api-service/metrics"
+	"github.com/howler-chat/api-service/utils"
 	"golang.org/x/net/context"
 )
 
@@ -17,14 +18,16 @@ type HowlerError interface {
 	error
 	GetCode() int
 	GetMessage() string
+	GetRaw() []byte
 	ToJson() []byte
 }
 
-func NewHowlerError(msg string) *ErrorResponse {
+func NewHowlerError(code int, msg string, body []byte) *ErrorResponse {
 	return &ErrorResponse{
 		Type:    "error",
-		Code:    0,
+		Code:    code,
 		Message: msg,
+		Raw:     body,
 	}
 }
 
@@ -42,7 +45,7 @@ func Internal(ctx context.Context, code int, tags map[string]string, msg string,
 	// Tell metrics about the internal error
 	metrics.InternalErrors.With(tags).Inc()
 	// Log the detail of the error
-	log.WithFields(tags).Error(renderedMsg)
+	log.WithFields(utils.ToFields(tags)).Error(renderedMsg)
 
 	return &ErrorResponse{
 		Type:    "error",

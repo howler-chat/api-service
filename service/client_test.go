@@ -22,12 +22,16 @@ func TestHttpClient(t *testing.T) {
 var _ = Describe("HttpClient", func() {
 	var client *service.ServiceClient
 	var server *httptest.Server
+	var err error
 
 	BeforeEach(func() {
 		// Create a new instance
 		server = httptest.NewServer(service.NewService())
 		// New Instance of the client
-		client = service.NewServiceClient(server.URL)
+		client, err = service.NewServiceClient(server.URL)
+		if err != nil {
+			Fail(err.Error())
+		}
 	})
 
 	AfterEach(func() {
@@ -40,8 +44,10 @@ var _ = Describe("HttpClient", func() {
 			It("should return code 404", func() {
 				msg, err := client.GetMessage(context.Background(), "non-existant", "non-existant")
 				Expect(msg).To(BeNil())
-				Expect(err.GetCode()).To(Equal(404))
-				Expect(err.GetMessage()).To(Equal(""))
+				Expect(err).To(Not(BeNil()))
+				Expect(string(service.GetErrorRaw(err))).To(Equal(""))
+				Expect(service.GetErrorMsg(err)).To(Equal(""))
+				Expect(service.GetErrorCode(err)).To(Equal(404))
 			})
 		})
 	})

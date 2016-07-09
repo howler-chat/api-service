@@ -19,20 +19,25 @@ import (
 )
 
 func FromErrorResponse(body io.ReadCloser) HowlerError {
+	payload, err := ioutil.ReadAll(body)
+	if err != nil {
+		return NewHowlerError(0, err.Error(), payload)
+	}
+
 	var entity ErrorResponse
-	if err := FromJson(body, &entity); err != nil {
-		return NewHowlerError(fmt.Sprintf("Error Marshalling ErrorResponse from server - %s", err.Error()))
+	if err := json.Unmarshal(payload, &entity); err != nil {
+		return NewHowlerError(0, fmt.Sprintf("Invalid JSON from server - %s", err.Error()), payload)
 	}
 	return &entity
 }
 
 func FromJson(body io.ReadCloser, value interface{}) error {
-	body, err := ioutil.ReadAll(body)
+	payload, err := ioutil.ReadAll(body)
 	if err != nil {
 		return err
 	}
 
-	if err := json.Unmarshal(body, &value); err != nil {
+	if err := json.Unmarshal(payload, &value); err != nil {
 		return err
 	}
 	return nil
@@ -51,10 +56,37 @@ func CurlString(req *http.Request, payload *[]byte) string {
 	return strings.Join(parts, " ")
 }
 
-func Post(ctx context.Context, url, value interface{}) (*http.Response, error) {
+func Post(ctx context.Context, url string, value interface{}) (*http.Response, error) {
 	payload, err := json.Marshal(value)
 	if err != nil {
 		return nil, err
 	}
 	return ctxhttp.Post(ctx, nil, url, contentType, bytes.NewReader(payload))
+}
+
+// Return the message associated with this error
+func GetErrorMsg(err error) string {
+	obj, ok := err.(HowlerError)
+	if ok {
+		return obj.GetMessage()
+	}
+	return err.Error()
+}
+
+// Return the error code associated with this error, if Error Code is 0, no JSON is associated with this error
+func GetErrorCode(err error) int {
+	obj, ok := err.(HowlerError)
+	if ok {
+		return obj.GetCode()
+	}
+	return 0
+}
+
+// Return the RAW un-parsed JSON, returns nil if no JSON is associated with this error
+func GetErrorRaw(err error) []byte {
+	obj, ok := err.(HowlerError)
+	if ok {
+		return obj.GetRaw()
+	}
+	return nil
 }

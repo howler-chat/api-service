@@ -5,10 +5,13 @@
 package service
 
 import (
-	"strings"
+	"fmt"
+	"path"
 
-	. "github.com/howler-chat/api-service/errors"
+	"net/url"
+
 	. "github.com/howler-chat/api-service/model"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 )
 
@@ -18,45 +21,57 @@ type ServiceClient struct {
 	Endpoint string
 }
 
-func NewServiceClient(endpoint string) *ServiceClient {
-	return &ServiceClient{endpoint}
+func NewServiceClient(endpoint string) (*ServiceClient, error) {
+	_, err := url.Parse(endpoint)
+	if err != nil {
+		return nil, errors.Wrap(err, "Invalid Endpoint")
+	}
+	return &ServiceClient{endpoint}, nil
 }
 
 func (self *ServiceClient) buildUrl(slug string) string {
-	return strings.Join([]string{self.Endpoint, slug}, "/")
+	parts, _ := url.Parse(self.Endpoint)
+	parts.Path = path.Join(parts.Path, slug)
+	return parts.String()
+	//return path.Join(self.Endpoint, slug)
 }
 
-func (self *ServiceClient) PostMessage(ctx context.Context, msg *Message) (MessageResponse, error) {
-	resp, err := Post(ctx, self.buildUrl("/message.post"), &msg)
+func (self *ServiceClient) PostMessage(ctx context.Context, msg *Message) (*MessageResponse, error) {
+	resp, err := Post(ctx, self.buildUrl("message.post"), &msg)
 	if err != nil {
 		return nil, err
 	}
 
 	if resp.StatusCode != 200 {
-		return FromErrorResponse(resp.Body)
+		return nil, FromErrorResponse(resp.Body)
 	}
 
 	entity := MessageResponse{}
 	if err := FromJson(resp.Body, &entity); err != nil {
 		return nil, err
 	}
-	return entity
+	return &entity, nil
 }
 
-func (self *ServiceClient) GetMessage(ctx context.Context, msgId, chanId string) (MessageResponse, HowlerError) {
+func (self *ServiceClient) GetMessage(ctx context.Context, msgId, chanId string) (*Message, error) {
 	request := GetMessageRequest{MessageId: msgId, ChannelId: chanId}
-	resp, err := Post(ctx, self.buildUrl("/message.get"), &request)
+	//fmt.Printf("Endpoint: %s\n", self.Endpoint)
+	//fmt.Printf("Url: %s\n", self.buildUrl("/message.get"))
+	resp, err := Post(ctx, self.buildUrl("/api/message.get"), &request)
+	//fmt.Printf("Resp: %+v\n", resp)
+	//fmt.Printf("Err: %+v\n", err)
 	if err != nil {
 		return nil, err
 	}
 
 	if resp.StatusCode != 200 {
-		return FromErrorResponse(resp.Body)
+		fmt.Printf("non 200\n")
+		return nil, FromErrorResponse(resp.Body)
 	}
 
 	var entity Message
 	if err := FromJson(resp.Body, &entity); err != nil {
 		return nil, err
 	}
-	return entity
+	return &entity, nil
 }

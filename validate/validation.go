@@ -23,7 +23,7 @@ type Validation interface {
 }
 
 func IsValidId(id string) error {
-	if !govalidator.StringLength(id, 10, 10) {
+	if !govalidator.StringLength(id, "10", "10") {
 		return stdError.New("Must be 10 characters long")
 	}
 	return nil
@@ -31,11 +31,11 @@ func IsValidId(id string) error {
 
 // Validates the passed text is considered valid for a message
 func IsMessageText(text string) error {
-	if !govalidator.StringLength(text, 1, 300) {
+	if !govalidator.StringLength(text, "1", "300") {
 		return stdError.New(fmt.Sprintf("Must be between '%d' and '%d' characters long", 1, 300))
 	}
 	// Returns true if the text passed contains only whitespace characters \n, \t, ' '
-	if whiteSpace.Match(text) {
+	if whiteSpace.MatchString(text) {
 		return stdError.New(fmt.Sprintf("A message with only white space is not allowed"))
 	}
 	return nil

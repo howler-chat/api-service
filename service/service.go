@@ -5,12 +5,14 @@
 package service
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
 	"golang.org/x/net/context"
 
 	"github.com/howler-chat/api-service/api"
+	"github.com/howler-chat/api-service/errors"
 	"github.com/pressly/chi"
 	"github.com/pressly/chi/middleware"
 	"github.com/prometheus/client_golang/prometheus"
@@ -22,15 +24,28 @@ func Serve(opt *args.Options) error {
 	return http.ListenAndServe(opt.String("bind"), handler)
 }
 
-func NewService() http.Handler {
+func NewRouter() chi.Router {
 	router := chi.NewRouter()
 
-	// Log Requests
-	router.Use(Logger)
+	// Add NotFound Handler
+	router.NotFound(func(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+		err := errors.NewHowlerError(404, fmt.Sprintf("Path '%s' Not Found", req.URL.RequestURI()), nil)
+		resp.WriteHeader(404)
+		resp.Write(err.ToJson())
+	})
+
+	return router
+}
+
+func NewService() http.Handler {
+	router := NewRouter()
+
 	// Capture any panics
 	router.Use(PanicRecoverer)
 	// Stop processing if client disconnects
-	router.Use(middleware.CloseNotify)
+	//router.Use(middleware.CloseNotify)
+	// Log Requests
+	router.Use(Logger)
 	// Stop processing after 2.5 seconds.
 	router.Use(middleware.Timeout(2500 * time.Millisecond))
 

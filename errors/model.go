@@ -17,6 +17,7 @@ type ErrorResponse struct {
 	Code      int    `json:"code"`
 	Message   string `json:"message,omitempty"`
 	RequestId string `json:"omit"`
+	Raw       []byte `json:"omit"`
 }
 
 func (self *ErrorResponse) Error() string {
@@ -25,6 +26,10 @@ func (self *ErrorResponse) Error() string {
 
 func (self *ErrorResponse) GetCode() int {
 	return self.Code
+}
+
+func (self *ErrorResponse) GetRaw() []byte {
+	return self.Raw
 }
 
 func (self *ErrorResponse) GetMessage() string {
