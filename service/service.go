@@ -53,31 +53,28 @@ func NewService() http.Handler {
 }
 
 func messagePost(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
-	defer req.Body.Close()
-
 	payload, err := api.PostMessage(ctx, req.Body)
 	if err != nil {
 		resp.WriteHeader(err.GetCode())
 	}
 	resp.Write(payload)
+	req.Body.Close()
 }
 
 func messageGet(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
-	defer req.Body.Close()
-
 	payload, err := api.GetMessage(ctx, req.Body)
 	if err != nil {
 		resp.WriteHeader(err.GetCode())
 	}
 	resp.Write(payload)
+	req.Body.Close()
 }
 
 func messageList(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
-	defer req.Body.Close()
-
 	payload, err := api.MessageList(ctx, req.Body)
 	if err != nil {
 		resp.WriteHeader(err.GetCode())
 	}
 	resp.Write(payload)
+	req.Body.Close()
 }

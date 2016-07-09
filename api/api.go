@@ -38,12 +38,12 @@ func PostMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 
 	// Validate the Model
 	if err := msg.Validate(ctx); err != nil {
-		return err
+		return err.ToJson(), err
 	}
 
 	// Does client have access to the channel?
 	if err := auth.CanAccessChannel(ctx, msg.ChannelId); err != nil {
-		return nil, err
+		return err.ToJson(), err
 	}
 
 	if err := store.InsertMessage(ctx, &msg); err != nil {
@@ -74,12 +74,12 @@ func GetMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 
 	// Validate the Model
 	if err := request.Validate(ctx); err != nil {
-		return err
+		return err.ToJson(), err
 	}
 
 	// Does client have access to the channel?
 	if err := auth.CanAccessChannel(ctx, request.ChannelId); err != nil {
-		return nil, err
+		return err.ToJson(), err
 	}
 
 	msg, err := store.GetMessage(ctx, &request)
@@ -114,12 +114,12 @@ func MessageList(ctx context.Context, payload []byte) ([]byte, HowlerError) {
 
 	// Validate the Model
 	if err := request.Validate(ctx); err != nil {
-		return err
+		return err.ToJson(), err
 	}
 
 	// Does client have access to the channel?
 	if err := auth.CanAccessChannel(ctx, request.ChannelId); err != nil {
-		return nil, err
+		return err.ToJson(), err
 	}
 
 	msg, err := store.ListMessage(ctx, &request)
