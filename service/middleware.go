@@ -7,6 +7,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/howler-chat/api-service/metrics"
+	"github.com/howler-chat/api-service/rethink"
 	"github.com/pressly/chi"
 	"golang.org/x/net/context"
 )
@@ -48,4 +49,14 @@ func RecordMetrics(next chi.Handler) chi.Handler {
 		metrics.HTTPRequestLatency.WithLabelValues(req.Method, req.URL.Path).
 			Observe(float64(elapsed) / float64(time.Millisecond))
 	})
+}
+
+func RethinkMiddleware(factory *rethink.Factory) func(chi.Handler) chi.Handler {
+	return func(next chi.Handler) chi.Handler {
+		return chi.HandlerFunc(func(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+			// Inject our rethink cluster information into the context
+			ctx = rethink.NewContext(ctx, factory.GetCluster())
+			next.ServeHTTPC(ctx, resp, req)
+		})
+	}
 }

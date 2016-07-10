@@ -14,12 +14,14 @@ import (
 	"strings"
 
 	. "github.com/howler-chat/api-service/errors"
+	"github.com/thrawn01/args"
 	"golang.org/x/net/context"
 	"golang.org/x/net/context/ctxhttp"
 )
 
 func FromErrorResponse(body io.ReadCloser) HowlerError {
 	payload, err := ioutil.ReadAll(body)
+	fmt.Printf("resp: %s\n", string(payload))
 	if err != nil {
 		return NewHowlerError(0, err.Error(), payload)
 	}
@@ -28,6 +30,7 @@ func FromErrorResponse(body io.ReadCloser) HowlerError {
 	if err := json.Unmarshal(payload, &entity); err != nil {
 		return NewHowlerError(0, fmt.Sprintf("Invalid JSON from server - %s", err.Error()), payload)
 	}
+	entity.Raw = payload
 	return &entity
 }
 
@@ -89,4 +92,15 @@ func GetErrorRaw(err error) []byte {
 		return obj.GetRaw()
 	}
 	return nil
+}
+
+func ParseRethinkArgs(argv *[]string) *args.ArgParser {
+	parser := args.NewParser()
+	rethink := parser.InGroup("rethink")
+	rethink.AddOption("--endpoints").Env("RETHINK_ENDPOINTS")
+	rethink.AddOption("--user").Env("RETHINK_USER")
+	rethink.AddOption("--password").Env("RETHINK_PASSWORD")
+	rethink.AddOption("--db").Env("RETHINK_DATABASE")
+	parser.ParseArgs(argv)
+	return parser
 }

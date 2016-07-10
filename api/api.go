@@ -11,22 +11,38 @@ import (
 	"github.com/howler-chat/api-service/auth"
 	. "github.com/howler-chat/api-service/errors"
 	"github.com/howler-chat/api-service/model"
-	"github.com/howler-chat/api-service/store"
+	"github.com/howler-chat/api-service/rethink"
 	"golang.org/x/net/context"
 )
 
 /*
-The api package provides access to all the public methods for clients to interact with the system. All api interactions
-are preformed via json encoded messages. This allows us to transparently use various transport methods to interact with
-the system, such as web sockets, http verbs, WebRTC data channels, sockets
+The api interface provides access to all the public methods for clients to interact with the system. All api
+interactions are preformed via json encoded messages. This allows us to transparently use various transport methods to
+interact with the system, such as web sockets, http verbs, WebRTC data channels, sockets
 */
+
+type HowlerApi interface {
+	PostMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError)
+	GetMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError)
+	MessageList(ctx context.Context, payload io.Reader) ([]byte, HowlerError)
+}
+
+type Api struct {
+	store rethink.Store
+}
+
+func NewApi() HowlerApi {
+	return &Api{
+		store: rethink.NewStore(),
+	}
+}
 
 // This method posts a message
 // Request
 //	{ text: "This is a message", "channelId": "A124B343" }
 // Response
 //	{ id: "AS223SDFS23" }
-func PostMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
+func (self *Api) PostMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 	var msg model.Message
 
 	// TODO: Test how this reacts to multiple json bodies in a single reader
@@ -46,7 +62,7 @@ func PostMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 		return err.ToJson(), err
 	}
 
-	if err := store.InsertMessage(ctx, &msg); err != nil {
+	if err := self.store.InsertMessage(ctx, &msg); err != nil {
 		return err.ToJson(), err
 	}
 
@@ -63,7 +79,7 @@ func PostMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 //	{ "id": "AS223SDFS23", "channelId": "A124B343" }
 // Response
 //	{ type: "message", text: "This is a message", "channelId": "A124B343" }
-func GetMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
+func (self *Api) GetMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 	var request model.GetMessageRequest
 
 	decoder := json.NewDecoder(payload)
@@ -82,7 +98,7 @@ func GetMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 		return err.ToJson(), err
 	}
 
-	msg, err := store.GetMessage(ctx, &request)
+	msg, err := self.store.GetMessage(ctx, &request)
 	if err != nil {
 		return err.ToJson(), err
 	}
@@ -103,7 +119,7 @@ func GetMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 // 		{ type: "message", text: "This is a message", "channelId": "A124B343" }
 //		...
 //	]
-func MessageList(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
+func (self *Api) MessageList(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 	var request model.ListMessageRequest
 
 	decoder := json.NewDecoder(payload)
@@ -122,7 +138,7 @@ func MessageList(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
 		return err.ToJson(), err
 	}
 
-	msg, err := store.ListMessage(ctx, &request)
+	msg, err := self.store.ListMessage(ctx, &request)
 	if err != nil {
 		return err.ToJson(), err
 	}

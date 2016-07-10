@@ -5,7 +5,6 @@
 package service
 
 import (
-	"fmt"
 	"path"
 
 	"net/url"
@@ -33,7 +32,6 @@ func (self *ServiceClient) buildUrl(slug string) string {
 	parts, _ := url.Parse(self.Endpoint)
 	parts.Path = path.Join(parts.Path, slug)
 	return parts.String()
-	//return path.Join(self.Endpoint, slug)
 }
 
 func (self *ServiceClient) PostMessage(ctx context.Context, msg *Message) (*MessageResponse, error) {
@@ -65,7 +63,6 @@ func (self *ServiceClient) GetMessage(ctx context.Context, msgId, chanId string)
 	}
 
 	if resp.StatusCode != 200 {
-		fmt.Printf("non 200\n")
 		return nil, FromErrorResponse(resp.Body)
 	}
 
