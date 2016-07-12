@@ -5,11 +5,11 @@
 package auth
 
 import (
-	"github.com/howler-chat/api-service/errors"
 	"golang.org/x/net/context"
+	"github.com/howler-chat/api-service/errors"
 )
 
-func CanAccessChannel(ctx context.Context, channelId string) errors.HowlerError {
+func CanAccessChannel(ctx context.Context, channelId string) errors.HttpError {
 	//errors.Fatal(ctx, errors.ACCESS_DENIED, "You do not have access to channel '%s'", channelId)
 	return nil
 }

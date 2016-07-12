@@ -41,6 +41,7 @@ func IsMessageText(text string) error {
 	return nil
 }
 
-func Fail(ctx context.Context, msg string, path *field.Path) errors.HowlerError {
-	return errors.Error(ctx, http.StatusNotAcceptable, "Validation Failed on '%s' - '%s'", path.String(), msg)
+func Fail(ctx context.Context, msg string, path *field.Path) errors.HttpError {
+	return errors.NewHttpError(ctx, http.StatusNotAcceptable, nil,
+		"Validation Failed on '%s' - '%s'", path.String(), msg)
 }

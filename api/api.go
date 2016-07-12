@@ -11,7 +11,7 @@ import (
 	"github.com/howler-chat/api-service/auth"
 	. "github.com/howler-chat/api-service/errors"
 	"github.com/howler-chat/api-service/model"
-	"github.com/howler-chat/api-service/rethink"
+	"github.com/howler-chat/api-service/store"
 	"golang.org/x/net/context"
 )
 
@@ -22,19 +22,15 @@ interact with the system, such as web sockets, http verbs, WebRTC data channels,
 */
 
 type HowlerApi interface {
-	PostMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError)
-	GetMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError)
-	MessageList(ctx context.Context, payload io.Reader) ([]byte, HowlerError)
+	PostMessage(ctx context.Context, payload io.Reader) ([]byte, HttpError)
+	GetMessage(ctx context.Context, payload io.Reader) ([]byte, HttpError)
+	MessageList(ctx context.Context, payload io.Reader) ([]byte, HttpError)
 }
 
-type Api struct {
-	store rethink.Store
-}
+type api struct{}
 
 func NewApi() HowlerApi {
-	return &Api{
-		store: rethink.NewStore(),
-	}
+	return &api{}
 }
 
 // This method posts a message
@@ -42,13 +38,14 @@ func NewApi() HowlerApi {
 //	{ text: "This is a message", "channelId": "A124B343" }
 // Response
 //	{ id: "AS223SDFS23" }
-func (self *Api) PostMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
+func (self *api) PostMessage(ctx context.Context, payload io.Reader) ([]byte, HttpError) {
+	dbStore := store.GetStore(ctx)
 	var msg model.Message
 
 	// TODO: Test how this reacts to multiple json bodies in a single reader
 	decoder := json.NewDecoder(payload)
 	if err := decoder.Decode(&msg); err != nil {
-		err := ReceivedInvalidJson(ctx, err)
+		err := HttpErrorInvalidJson(ctx, err)
 		return err.ToJson(), err
 	}
 
@@ -62,13 +59,13 @@ func (self *Api) PostMessage(ctx context.Context, payload io.Reader) ([]byte, Ho
 		return err.ToJson(), err
 	}
 
-	if err := self.store.InsertMessage(ctx, &msg); err != nil {
+	if err := dbStore.InsertMessage(ctx, &msg); err != nil {
 		return err.ToJson(), err
 	}
 
 	resp, err := json.Marshal(map[string]interface{}{"id": msg.Id})
 	if err != nil {
-		err := InternalJsonError(ctx, "api.PostMessage()", err)
+		err := HttpErrorInternalJson(ctx, "api.PostMessage()", err)
 		return err.ToJson(), err
 	}
 	return resp, nil
@@ -79,12 +76,13 @@ func (self *Api) PostMessage(ctx context.Context, payload io.Reader) ([]byte, Ho
 //	{ "id": "AS223SDFS23", "channelId": "A124B343" }
 // Response
 //	{ type: "message", text: "This is a message", "channelId": "A124B343" }
-func (self *Api) GetMessage(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
+func (self *api) GetMessage(ctx context.Context, payload io.Reader) ([]byte, HttpError) {
+	dbStore := store.GetStore(ctx)
 	var request model.GetMessageRequest
 
 	decoder := json.NewDecoder(payload)
 	if err := decoder.Decode(&request); err != nil {
-		err := ReceivedInvalidJson(ctx, err)
+		err := HttpErrorInvalidJson(ctx, err)
 		return err.ToJson(), err
 	}
 
@@ -98,14 +96,14 @@ func (self *Api) GetMessage(ctx context.Context, payload io.Reader) ([]byte, How
 		return err.ToJson(), err
 	}
 
-	msg, err := self.store.GetMessage(ctx, &request)
+	msg, err := dbStore.GetMessage(ctx, &request)
 	if err != nil {
 		return err.ToJson(), err
 	}
 
 	resp, jsonErr := json.Marshal(msg)
 	if jsonErr != nil {
-		err := InternalJsonError(ctx, "api.GetMessage()", jsonErr)
+		err := HttpErrorInternalJson(ctx, "api.GetMessage()", jsonErr)
 		return err.ToJson(), err
 	}
 	return resp, nil
@@ -119,12 +117,13 @@ func (self *Api) GetMessage(ctx context.Context, payload io.Reader) ([]byte, How
 // 		{ type: "message", text: "This is a message", "channelId": "A124B343" }
 //		...
 //	]
-func (self *Api) MessageList(ctx context.Context, payload io.Reader) ([]byte, HowlerError) {
+func (self *api) MessageList(ctx context.Context, payload io.Reader) ([]byte, HttpError) {
+	dbStore := store.GetStore(ctx)
 	var request model.ListMessageRequest
 
 	decoder := json.NewDecoder(payload)
 	if err := decoder.Decode(&request); err != nil {
-		err := ReceivedInvalidJson(ctx, err)
+		err := HttpErrorInvalidJson(ctx, err)
 		return err.ToJson(), err
 	}
 
@@ -138,14 +137,14 @@ func (self *Api) MessageList(ctx context.Context, payload io.Reader) ([]byte, Ho
 		return err.ToJson(), err
 	}
 
-	msg, err := self.store.ListMessage(ctx, &request)
+	msg, err := dbStore.ListMessage(ctx, &request)
 	if err != nil {
 		return err.ToJson(), err
 	}
 
 	resp, jsonErr := json.Marshal(msg)
 	if jsonErr != nil {
-		err := InternalJsonError(ctx, "api.MessageList()", jsonErr)
+		err := HttpErrorInternalJson(ctx, "api.MessageList()", jsonErr)
 		return err.ToJson(), err
 	}
 	return resp, nil

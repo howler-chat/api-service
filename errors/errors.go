@@ -14,15 +14,22 @@ import (
 	"golang.org/x/net/context"
 )
 
-type HowlerError interface {
+// Used internally by the http service
+type HttpError interface {
 	error
 	GetCode() int
 	GetMessage() string
-	GetRaw() []byte
 	ToJson() []byte
 }
 
-func NewHowlerError(code int, msg string, body []byte) *ErrorResponse {
+// Returned by the http client
+type ClientError interface {
+	HttpError
+	GetRaw() []byte
+}
+
+// Used by a client to indicate some error occurred while communicating with the server
+func NewClientError(code int, msg string, body []byte) HttpError {
 	return &ErrorResponse{
 		Type:    "error",
 		Code:    code,
@@ -31,21 +38,18 @@ func NewHowlerError(code int, msg string, body []byte) *ErrorResponse {
 	}
 }
 
-func Error(ctx context.Context, code int, msg string, stuff ...interface{}) HowlerError {
-	return &ErrorResponse{
-		Type:    "error",
-		Code:    code,
-		Message: fmt.Sprintf(msg, stuff...),
-		// TODO: RequestId: ctx.GetRequestId()
-	}
-}
-
-func Internal(ctx context.Context, code int, tags map[string]string, msg string, stuff ...interface{}) HowlerError {
+// Used by a Service to create a new HttpError, suitable for JSON encoding as a response to a request. If tags is != nil
+// the error will be logged, and included in the our metrics
+func NewHttpError(ctx context.Context, code int, tags map[string]string, msg string, stuff ...interface{}) HttpError {
 	renderedMsg := fmt.Sprintf(msg, stuff...)
-	// Tell metrics about the internal error
-	metrics.InternalErrors.With(tags).Inc()
-	// Log the detail of the error
-	log.WithFields(utils.ToFields(tags)).Error(renderedMsg)
+
+	// If we included tags, assume we want metrics on this error
+	if tags != nil {
+		// Tell metrics about the internal error
+		metrics.InternalErrors.With(tags).Inc()
+		// Log the detail of the error
+		log.WithFields(utils.ToFields(tags)).Error(renderedMsg)
+	}
 
 	return &ErrorResponse{
 		Type:    "error",
@@ -55,14 +59,16 @@ func Internal(ctx context.Context, code int, tags map[string]string, msg string,
 	}
 }
 
-func ReceivedInvalidJson(ctx context.Context, err error) HowlerError {
-	return Error(ctx, http.StatusBadRequest, "Received Invalid JSON - %s", err.Error())
+// Tell the client, it sent invalid json
+func HttpErrorInvalidJson(ctx context.Context, err error) HttpError {
+	return NewHttpError(ctx, http.StatusBadRequest, nil, "Received Invalid JSON - %s", err.Error())
 }
 
-func InternalJsonError(ctx context.Context, method string, err error) HowlerError {
+// Tell the client we had some issue un-marshalling json internally
+func HttpErrorInternalJson(ctx context.Context, method string, err error) HttpError {
 	tags := map[string]string{
 		"type:":  "json",
 		"method": method,
 	}
-	return Internal(ctx, http.StatusInternalServerError, tags, "Marshal JSON Error - %s", err.Error())
+	return NewHttpError(ctx, http.StatusInternalServerError, tags, "Marshal JSON Error - %s", err.Error())
 }

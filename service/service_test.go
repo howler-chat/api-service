@@ -5,7 +5,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/howler-chat/api-service/rethink"
 	"github.com/howler-chat/api-service/service"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,22 +18,22 @@ func TestServer(t *testing.T) {
 var _ = Describe("Service", func() {
 	var server http.Handler
 	var req *http.Request
-	var factory *rethink.Factory
+	var serviceCtx *service.ServiceContext
 	var resp *httptest.ResponseRecorder
 
 	BeforeEach(func() {
 		// Get our Rethink Config from our local Environment
 		parser := service.ParseRethinkArgs(nil)
-		// Create a rethink factory for our service
-		factory = rethink.NewFactory(parser)
+		// Create a new service context for our service
+		serviceCtx = service.NewServiceContext(parser)
 		// Create a new handler instance
-		server = service.NewService(factory)
+		server = service.NewService(serviceCtx)
 		// Record HTTP responses.
 		resp = httptest.NewRecorder()
 	})
 
 	AfterEach(func() {
-		factory.Close()
+		serviceCtx.Stop()
 	})
 
 	Describe("Error Conditions", func() {

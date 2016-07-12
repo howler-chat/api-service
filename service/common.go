@@ -19,16 +19,16 @@ import (
 	"golang.org/x/net/context/ctxhttp"
 )
 
-func FromErrorResponse(body io.ReadCloser) HowlerError {
+func FromErrorResponse(body io.ReadCloser) HttpError {
 	payload, err := ioutil.ReadAll(body)
 	fmt.Printf("resp: %s\n", string(payload))
 	if err != nil {
-		return NewHowlerError(0, err.Error(), payload)
+		return NewClientError(0, err.Error(), payload)
 	}
 
 	var entity ErrorResponse
 	if err := json.Unmarshal(payload, &entity); err != nil {
-		return NewHowlerError(0, fmt.Sprintf("Invalid JSON from server - %s", err.Error()), payload)
+		return NewClientError(0, fmt.Sprintf("Invalid JSON from server - %s", err.Error()), payload)
 	}
 	entity.Raw = payload
 	return &entity
@@ -69,7 +69,7 @@ func Post(ctx context.Context, url string, value interface{}) (*http.Response, e
 
 // Return the message associated with this error
 func GetErrorMsg(err error) string {
-	obj, ok := err.(HowlerError)
+	obj, ok := err.(HttpError)
 	if ok {
 		return obj.GetMessage()
 	}
@@ -78,7 +78,7 @@ func GetErrorMsg(err error) string {
 
 // Return the error code associated with this error, if Error Code is 0, no JSON is associated with this error
 func GetErrorCode(err error) int {
-	obj, ok := err.(HowlerError)
+	obj, ok := err.(HttpError)
 	if ok {
 		return obj.GetCode()
 	}
@@ -87,7 +87,7 @@ func GetErrorCode(err error) int {
 
 // Return the RAW un-parsed JSON, returns nil if no JSON is associated with this error
 func GetErrorRaw(err error) []byte {
-	obj, ok := err.(HowlerError)
+	obj, ok := err.(ClientError)
 	if ok {
 		return obj.GetRaw()
 	}

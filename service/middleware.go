@@ -6,8 +6,10 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/howler-chat/api-service/api"
 	"github.com/howler-chat/api-service/metrics"
-	"github.com/howler-chat/api-service/rethink"
+	"github.com/howler-chat/api-service/store"
+	"github.com/howler-chat/api-service/store/rethink"
 	"github.com/pressly/chi"
 	"golang.org/x/net/context"
 )
@@ -51,11 +53,21 @@ func RecordMetrics(next chi.Handler) chi.Handler {
 	})
 }
 
-func RethinkMiddleware(factory *rethink.Factory) func(chi.Handler) chi.Handler {
+func SetupContext(serviceCtx *ServiceContext) func(chi.Handler) chi.Handler {
 	return func(next chi.Handler) chi.Handler {
 		return chi.HandlerFunc(func(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
-			// Inject our rethink cluster information into the context
-			ctx = rethink.NewContext(ctx, factory.GetCluster())
+
+			// TODO: At some point we will have some logic here to decide what rethink session should be
+			// associated with this request, (probably based on user or team)
+			ctx = rethink.AddRethinkSession(ctx, serviceCtx.RethinkContext.GetRethinkSession())
+
+			// TODO: If in the future we migrate teams to a different store (mongodb?) we would have logic
+			// here to decide what Store interface to use for this request, right now we always use rethink
+			ctx = store.AddStore(ctx, serviceCtx.Store)
+
+			// Same for API
+			ctx = api.AddApi(ctx, serviceCtx.Api)
+
 			next.ServeHTTPC(ctx, resp, req)
 		})
 	}

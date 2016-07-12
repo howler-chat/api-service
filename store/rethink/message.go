@@ -10,26 +10,21 @@ import (
 	"github.com/dancannon/gorethink"
 	"github.com/howler-chat/api-service/errors"
 	"github.com/howler-chat/api-service/model"
+	"github.com/howler-chat/api-service/store"
 	"golang.org/x/net/context"
 )
 
-type Store interface {
-	InsertMessage(ctx context.Context, msg *model.Message) errors.HowlerError
-	GetMessage(ctx context.Context, req *model.GetMessageRequest) (*model.Message, errors.HowlerError)
-	ListMessage(ctx context.Context, req *model.ListMessageRequest) ([]model.Message, errors.HowlerError)
-}
-
 type RethinkStore struct{}
 
-func NewStore() Store {
+func NewStore() store.HowlerStore {
 	return &RethinkStore{}
 }
 
 // Insert the message on the requested channel
-func (self *RethinkStore) InsertMessage(ctx context.Context, msg *model.Message) errors.HowlerError {
-	cluster := FromContext(ctx)
+func (self *RethinkStore) InsertMessage(ctx context.Context, msg *model.Message) errors.HttpError {
+	session := GetRethinkSession(ctx)
 
-	changed, err := gorethink.Table("Message").Insert(msg).RunWrite(cluster.Session, runOpts)
+	changed, err := gorethink.Table("Message").Insert(msg).RunWrite(session, runOpts)
 	if err != nil {
 		return Error(ctx, "InsertMessage()", err.Error())
 	} else if changed.Errors != 0 {
@@ -44,13 +39,13 @@ func (self *RethinkStore) InsertMessage(ctx context.Context, msg *model.Message)
 }
 
 // Get a message, will return non nil error if the message doesn't exist
-func (self *RethinkStore) GetMessage(ctx context.Context, req *model.GetMessageRequest) (*model.Message, errors.HowlerError) {
-	cluster := FromContext(ctx)
+func (self *RethinkStore) GetMessage(ctx context.Context, req *model.GetMessageRequest) (*model.Message, errors.HttpError) {
+	session := GetRethinkSession(ctx)
 
 	var message model.Message
 	cursor, err := gorethink.Table("Message").
 		Filter(gorethink.Row.Field("ChannelId").Eq(req.ChannelId).
-			And(gorethink.Row.Field("MessageId").Eq(req.MessageId))).Run(cluster.Session, runOpts)
+			And(gorethink.Row.Field("MessageId").Eq(req.MessageId))).Run(session, runOpts)
 
 	if err != nil {
 		return nil, Error(ctx, "GetMessage()", err.Error())
@@ -60,12 +55,12 @@ func (self *RethinkStore) GetMessage(ctx context.Context, req *model.GetMessageR
 	return &message, nil
 }
 
-func (self *RethinkStore) ListMessage(ctx context.Context, req *model.ListMessageRequest) ([]model.Message, errors.HowlerError) {
-	cluster := FromContext(ctx)
+func (self *RethinkStore) ListMessage(ctx context.Context, req *model.ListMessageRequest) ([]model.Message, errors.HttpError) {
+	session := GetRethinkSession(ctx)
 
 	var messages []model.Message
 	cursor, err := gorethink.Table("Message").
-		Filter(gorethink.Row.Field("ChannelId").Eq(req.ChannelId)).Run(cluster.Session, runOpts)
+		Filter(gorethink.Row.Field("ChannelId").Eq(req.ChannelId)).Run(session, runOpts)
 
 	if err != nil {
 		return nil, Error(ctx, "ListMessage()", err.Error())

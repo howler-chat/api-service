@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/howler-chat/api-service/rethink"
 	"github.com/howler-chat/api-service/service"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,7 +22,7 @@ func TestHttpClient(t *testing.T) {
 var _ = Describe("HttpClient", func() {
 	var client *service.ServiceClient
 	var server *httptest.Server
-	var factory *rethink.Factory
+	var serviceCtx *service.ServiceContext
 	var err error
 
 	Describe("service un-available", func() {
@@ -31,10 +30,10 @@ var _ = Describe("HttpClient", func() {
 			cmdLine := []string{"endpoints", "http://unknown-host:8000"}
 			// Get our Rethink Config from our local Environment
 			parser := service.ParseRethinkArgs(&cmdLine)
-			// Create a rethink factory for our service
-			factory = rethink.NewFactory(parser)
+			// Create a new service context for our service
+			serviceCtx = service.NewServiceContext(parser)
 			// Create a new instance
-			server = httptest.NewServer(service.NewService(factory))
+			server = httptest.NewServer(service.NewService(serviceCtx))
 			// New Instance of the client
 			client, err = service.NewServiceClient(server.URL)
 			if err != nil {
@@ -44,7 +43,7 @@ var _ = Describe("HttpClient", func() {
 		})
 
 		AfterEach(func() {
-			factory.Close()
+			serviceCtx.Stop()
 			server.Close()
 		})
 
